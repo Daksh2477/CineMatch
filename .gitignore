@@ -1,0 +1,34 @@
+# Python
+.venv/
+__pycache__/
+*.py[cod]
+.pytest_cache/
+.coverage
+htmlcov/
+
+# Django
+backend/db.sqlite3
+backend/.env
+backend/media/
+backend/staticfiles/
+
+# Node
+node_modules/
+frontend/dist/
+
+# Environment and secrets
+.env
+.env.*
+!.env.example
+
+# Editors and OS
+.vscode/
+.idea/
+.DS_Store
+Thumbs.db
+
+# Large data
+backend/datasets/raw/*
+!backend/datasets/raw/.gitkeep
+backend/datasets/processed/*
+!backend/datasets/processed/.gitkeep
