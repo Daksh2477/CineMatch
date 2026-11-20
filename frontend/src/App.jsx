@@ -13,13 +13,17 @@ async function api(path, options = {}) {
   return response.status === 204 ? null : response.json()
 }
 
-const fallbackPoster = 'https://placehold.co/600x900/171a22/e8edf5?text=CineMatch'
+const fallbackPoster = '/poster-fallback.svg'
+
+function getPoster(movie) {
+  return movie?.poster_url || fallbackPoster
+}
 
 function MovieCard({ movie, onOpen, onWatchlist }) {
   return (
     <article className="movie-card">
       <button className="poster-button" onClick={() => onOpen(movie)} aria-label={`View ${movie.title}`}>
-        <img src={movie.poster_url || fallbackPoster} alt={`${movie.title} poster`} onError={(event) => { event.currentTarget.src = fallbackPoster }} />
+        <img src={getPoster(movie)} alt={`${movie.title} poster`} onError={(event) => { event.currentTarget.onerror = null; event.currentTarget.src = fallbackPoster }} />
         <span className="rating-chip"><Star size={14} fill="currentColor" /> {movie.vote_average?.toFixed(1) || 'N/A'}</span>
       </button>
       <div className="card-copy">
@@ -189,7 +193,7 @@ function App() {
                 <button className="primary" onClick={() => { setSection('discover'); loadMovies() }}>Explore movies</button>
               </div>
               <div className="hero-feature">
-                {movies[0] && <img src={movies[0].poster_url || fallbackPoster} alt="" />}
+                {movies[0] && <img src={getPoster(movies[0])} alt={`${movies[0].title} featured artwork`} onError={(event) => { event.currentTarget.onerror = null; event.currentTarget.src = fallbackPoster }} />}
               </div>
             </section>
             <section className="content-section">
@@ -246,7 +250,7 @@ function App() {
         <div className="modal-backdrop" role="presentation" onMouseDown={(event) => { if (event.target === event.currentTarget) setSelected(null) }}>
           <article className="detail-modal" role="dialog" aria-modal="true" aria-label={selected.title}>
             <button className="modal-close" onClick={() => setSelected(null)} aria-label="Close"><X /></button>
-            <img src={selected.poster_url || fallbackPoster} alt={`${selected.title} poster`} onError={(event) => { event.currentTarget.src = fallbackPoster }} />
+            <img src={getPoster(selected)} alt={`${selected.title} poster`} onError={(event) => { event.currentTarget.onerror = null; event.currentTarget.src = fallbackPoster }} />
             <div>
               <span className="eyebrow">{selected.release_year} · {selected.runtime ? `${selected.runtime} min` : 'Runtime unavailable'}</span>
               <h2>{selected.title}</h2>
