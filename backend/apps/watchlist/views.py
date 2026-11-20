@@ -8,6 +8,7 @@ from .serializers import WatchlistSerializer
 
 
 class WatchlistViewSet(viewsets.ModelViewSet):
+    queryset = WatchlistItem.objects.all()
     serializer_class = WatchlistSerializer
     permission_classes = (permissions.IsAuthenticated,)
 

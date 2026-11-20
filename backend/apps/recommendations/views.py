@@ -10,6 +10,7 @@ from .engine import RecommendationEngine
 
 
 class RecommendationViewSet(viewsets.ViewSet):
+    serializer_class = PreferenceSerializer
     @action(detail=False, methods=['post'], url_path='preferences')
     def preferences(self, request):
         serializer = PreferenceSerializer(data=request.data)
@@ -47,6 +48,7 @@ class RecommendationViewSet(viewsets.ViewSet):
 
 
 class HistoryViewSet(viewsets.ReadOnlyModelViewSet):
+    queryset = RecommendationHistory.objects.all()
     serializer_class = HistorySerializer
     permission_classes = (permissions.IsAuthenticated,)
 

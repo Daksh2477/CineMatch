@@ -1,4 +1,4 @@
-import { useEffect, useMemo, useState } from 'react'
+import { useCallback, useEffect, useMemo, useState } from 'react'
 import { Bookmark, Film, Heart, Search, Star, X } from 'lucide-react'
 import './App.css'
 
@@ -38,6 +38,7 @@ function App() {
   const [similar, setSimilar] = useState([])
   const [watchlist, setWatchlist] = useState([])
   const [selected, setSelected] = useState(null)
+  const [recommendationSource, setRecommendationSource] = useState(null)
   const [query, setQuery] = useState('')
   const [genreFilter, setGenreFilter] = useState('')
   const [yearFilter, setYearFilter] = useState('')
@@ -45,14 +46,17 @@ function App() {
   const [loading, setLoading] = useState(true)
   const [error, setError] = useState('')
 
-  const loadMovies = async () => {
+  const loadMovies = useCallback(async (filters = {}) => {
     setLoading(true)
     setError('')
     try {
       const params = new URLSearchParams()
-      if (genreFilter) params.set('genre', genreFilter)
-      if (yearFilter) params.set('year', yearFilter)
-      if (ratingFilter) params.set('rating', ratingFilter)
+      const nextGenre = filters.genre ?? genreFilter
+      const nextYear = filters.year ?? yearFilter
+      const nextRating = filters.rating ?? ratingFilter
+      if (nextGenre) params.set('genre', nextGenre)
+      if (nextYear) params.set('year', nextYear)
+      if (nextRating) params.set('rating', nextRating)
       const data = await api(`/movies/?${params}`)
       setMovies(Array.isArray(data) ? data : data.results || [])
     } catch (requestError) {
@@ -60,7 +64,7 @@ function App() {
     } finally {
       setLoading(false)
     }
-  }
+  }, [genreFilter, yearFilter, ratingFilter])
 
   useEffect(() => {
     Promise.all([api('/genres/'), api('/movies/popular/')])
@@ -71,10 +75,6 @@ function App() {
       .catch((requestError) => setError(requestError.message))
       .finally(() => setLoading(false))
   }, [])
-
-  useEffect(() => {
-    if (section === 'discover') loadMovies()
-  }, [section, genreFilter, yearFilter, ratingFilter])
 
   const filteredMovies = useMemo(() => {
     if (!query.trim()) return movies
@@ -87,6 +87,18 @@ function App() {
 
   const openMovie = async (movie) => {
     setSelected(movie)
+    setSimilar([])
+    try {
+      const recommendations = await api(`/recommendations/movie/${movie.id}/`)
+      setSimilar(recommendations)
+    } catch {
+      setSimilar([])
+    }
+  }
+
+  const selectRecommendationMovie = async (movie) => {
+    setSelected(null)
+    setRecommendationSource(movie)
     setSimilar([])
     try {
       const recommendations = await api(`/recommendations/movie/${movie.id}/`)
@@ -157,7 +169,7 @@ function App() {
         <button className="brand" onClick={() => setSection('home')}><Film size={24} /> CineMatch</button>
         <nav aria-label="Primary navigation">
           <button className={section === 'home' ? 'active' : ''} onClick={() => setSection('home')}>Home</button>
-          <button className={section === 'discover' ? 'active' : ''} onClick={() => setSection('discover')}>Discover</button>
+          <button className={section === 'discover' ? 'active' : ''} onClick={() => { setSection('discover'); loadMovies() }}>Discover</button>
           <button className={section === 'recommendations' ? 'active' : ''} onClick={() => setSection('recommendations')}>Recommendations</button>
           <button className={section === 'watchlist' ? 'active' : ''} onClick={loadWatchlist}>Watchlist</button>
         </nav>
@@ -174,7 +186,7 @@ function App() {
                 <span className="eyebrow">Your next favorite story</span>
                 <h1>Discover films that match your taste.</h1>
                 <p>Search the catalog, explore genres, and find thoughtful recommendations powered by movie metadata.</p>
-                <button className="primary" onClick={() => setSection('discover')}>Explore movies</button>
+                <button className="primary" onClick={() => { setSection('discover'); loadMovies() }}>Explore movies</button>
               </div>
               <div className="hero-feature">
                 {movies[0] && <img src={movies[0].poster_url || fallbackPoster} alt="" />}
@@ -187,7 +199,7 @@ function App() {
               )}
             </section>
             <section className="genre-strip">
-              {genres.map((genre) => <button key={genre.id} onClick={() => { setGenreFilter(genre.slug); setSection('discover') }}>{genre.name}</button>)}
+              {genres.map((genre) => <button key={genre.id} onClick={() => { setGenreFilter(genre.slug); setSection('discover'); loadMovies({ genre: genre.slug }) }}>{genre.name}</button>)}
             </section>
           </>
         )}
@@ -199,9 +211,9 @@ function App() {
               <label className="search-box"><Search size={18} /><input value={query} onChange={(event) => setQuery(event.target.value)} placeholder="Search title or description" /></label>
             </div>
             <div className="filters">
-              <select value={genreFilter} onChange={(event) => setGenreFilter(event.target.value)}><option value="">All genres</option>{genres.map((genre) => <option value={genre.slug} key={genre.id}>{genre.name}</option>)}</select>
-              <select value={yearFilter} onChange={(event) => setYearFilter(event.target.value)}><option value="">All years</option>{[2022,2021,2018,2017,2016,2015,2014,2010,2008,2004,1995].map((year) => <option value={year} key={year}>{year}</option>)}</select>
-              <select value={ratingFilter} onChange={(event) => setRatingFilter(event.target.value)}><option value="">Any rating</option>{[9,8,7].map((rating) => <option value={rating} key={rating}>{rating}+ rating</option>)}</select>
+              <select value={genreFilter} onChange={(event) => { setGenreFilter(event.target.value); loadMovies({ genre: event.target.value }) }}><option value="">All genres</option>{genres.map((genre) => <option value={genre.slug} key={genre.id}>{genre.name}</option>)}</select>
+              <select value={yearFilter} onChange={(event) => { setYearFilter(event.target.value); loadMovies({ year: event.target.value }) }}><option value="">All years</option>{[2022,2021,2018,2017,2016,2015,2014,2010,2008,2004,1995].map((year) => <option value={year} key={year}>{year}</option>)}</select>
+              <select value={ratingFilter} onChange={(event) => { setRatingFilter(event.target.value); loadMovies({ rating: event.target.value }) }}><option value="">Any rating</option>{[9,8,7].map((rating) => <option value={rating} key={rating}>{rating}+ rating</option>)}</select>
             </div>
             {loading ? <div className="movie-grid">{[1,2,3,4,5,6].map((n) => <div className="skeleton" key={n} />)}</div> : filteredMovies.length ? (
               <div className="movie-grid">{filteredMovies.map((movie) => <MovieCard key={movie.id} movie={movie} onOpen={openMovie} onWatchlist={addToWatchlist} />)}</div>
@@ -213,8 +225,8 @@ function App() {
           <section className="content-section">
             <div className="section-heading"><div><span>For you</span><h1>Recommendation finder</h1></div></div>
             <div className="recommendation-panel">
-              <label><span>Choose a movie</span><select onChange={(event) => { const movie = movies.find((item) => item.id === Number(event.target.value)); if (movie) openMovie(movie) }}><option value="">Select a movie</option>{movies.map((movie) => <option value={movie.id} key={movie.id}>{movie.title}</option>)}</select></label>
-              {selected && <p>Because you selected <strong>{selected.title}</strong>, CineMatch compares genres, descriptions, directors, cast, and keywords using TF-IDF and cosine similarity.</p>}
+              <label><span>Choose a movie</span><select onChange={(event) => { const movie = movies.find((item) => item.id === Number(event.target.value)); if (movie) selectRecommendationMovie(movie) }}><option value="">Select a movie</option>{movies.map((movie) => <option value={movie.id} key={movie.id}>{movie.title}</option>)}</select></label>
+              {recommendationSource && <p>Because you selected <strong>{recommendationSource.title}</strong>, CineMatch compares genres, descriptions, directors, cast, and keywords using TF-IDF and cosine similarity.</p>}
             </div>
             {similar.length ? <div className="movie-grid">{similar.map((movie) => <MovieCard key={movie.id} movie={movie} onOpen={openMovie} onWatchlist={addToWatchlist} />)}</div> : <div className="empty-state"><Heart size={36} /><h2>Select a movie</h2><p>Similar titles will appear here.</p></div>}
           </section>

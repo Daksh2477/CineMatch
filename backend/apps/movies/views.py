@@ -50,6 +50,7 @@ class GenreViewSet(viewsets.ReadOnlyModelViewSet):
 
 
 class RatingViewSet(viewsets.ModelViewSet):
+    queryset = UserRating.objects.all()
     serializer_class = RatingSerializer
     permission_classes = (permissions.IsAuthenticated,)
 

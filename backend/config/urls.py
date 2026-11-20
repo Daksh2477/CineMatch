@@ -31,7 +31,6 @@ router.register(r'genres', GenreViewSet, basename='genre')
 router.register(r'ratings', RatingViewSet, basename='rating')
 router.register(r'watchlist', WatchlistViewSet, basename='watchlist')
 router.register(r'history', HistoryViewSet, basename='history')
-router.register(r'recommendations', RecommendationViewSet, basename='recommendation')
 
 urlpatterns = [
     path('admin/', admin.site.urls),
